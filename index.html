@@ -21,10 +21,10 @@
       <button class="tab" data-page="measurements">Measurements</button>
       <button class="tab" data-page="plans">Plans & Markups</button>
       <button class="tab" data-page="materials">Materials</button>
-      <button class="tab" data-page="claims">Claims</button>
       <button class="tab" data-page="handover">Handover</button>
     </nav>
 
+    <!-- Projects -->
     <section class="page active" id="projects">
       <p class="eyebrow">ACTIVE PROJECT</p>
       <h1>Hillside Residence</h1>
@@ -46,164 +46,181 @@
       </div>
     </section>
 
+    <!-- Tasks (rendered by JS) -->
     <section class="page" id="tasks"></section>
 
-    <section class="page" id="proof">
-      <div class="heading">
-        <div><p class="eyebrow">SITE DOCUMENTATION</p><h1>Work proof</h1></div>
-        <button class="primary" id="addProof">+ Add proof</button>
-      </div>
-      <article class="proof-card">
-        <span class="chip pending">Awaiting approval</span>
-        <h3>Kitchen cabinetry installation</h3>
-        <p>Today · Level 1, Kitchen</p>
-        <div class="photos"><div>BEFORE</div><div>AFTER</div></div>
-        <p>Base cabinets aligned and secured. Countertop template scheduled for tomorrow.</p>
-        <button class="approval">Request owner approval</button>
-      </article>
-    </section>
+    <!-- Proof (rendered by JS) -->
+    <section class="page" id="proof"></section>
 
-    <section class="page" id="measurements">
-      <div class="heading">
-        <div><p class="eyebrow">SITE DIMENSIONS</p><h1>Measurements</h1></div>
-        <button class="primary" id="addMeasurement">+ Add measure</button>
-      </div>
-      <div class="summary"><b>12</b> recorded measurements <span>3 pending confirmation</span></div>
-      <div id="measurementList">
-        <article class="measure-card">
-          <div><span class="chip confirmed">Confirmed</span><h3>Kitchen floor tiling</h3><p>Level 1 · Kitchen</p></div>
-          <strong>18.72 m²</strong><small>4.8 m × 3.9 m</small>
-        </article>
-        <article class="measure-card">
-          <div><span class="chip pending">Pending</span><h3>Master bedroom walls</h3><p>Level 2 · Master suite</p></div>
-          <strong>42.00 m²</strong><small>7.0 m × 6.0 m</small>
-        </article>
-      </div>
-    </section>
+    <!-- Measurements (rendered by JS) -->
+    <section class="page" id="measurements"></section>
 
+    <!-- Plans -->
     <section class="page" id="plans">
+  <div class="heading">
+    <div>
+      <p class="eyebrow">DRAWINGS & SITE NOTES</p>
+      <h1>Plans & Markups</h1>
+    </div>
+    <label class="primary upload-plan">Upload plan
+      <input id="planUpload" type="file" accept="image/*" hidden>
+    </label>
+  </div>
+
+  <div class="summary" id="planSummary" style="margin-bottom:14px;">
+    <b>0</b> pins · <span>0 completed</span>
+  </div>
+
+  <div class="plan-layout">
+    <section class="plan-workspace" id="planWorkspace">
+      <div class="sample-plan" id="samplePlan">
+        <span class="plan-title">Upload a floor plan to start</span>
+      </div>
+      <div class="pins-layer" id="pinsLayer"></div>
+    </section>
+
+    <aside class="pin-panel">
       <div class="heading">
-        <div><p class="eyebrow">DRAWINGS & SITE NOTES</p><h1>Plans & Markups</h1></div>
-        <label class="primary upload-plan">Upload plan<input id="planUpload" type="file" accept="image/*,.pdf,application/pdf" hidden></label>
+        <h2>Checklist</h2>
+        <button id="addPinBtn">+ Add pin</button>
       </div>
-      <div class="plan-toolbar">
-        <div class="view-toggle"><button class="plan-view active" data-view="marked">Marked-up</button><button class="plan-view" data-view="original">Original</button></div>
-        <div class="drawing-tools"><button data-tool="arrow">Arrow</button><button data-tool="box">Box</button><button data-tool="circle">Circle</button><button data-tool="freehand">Freehand</button></div>
-      </div>
-      <div class="plan-layout">
-        <section class="plan-workspace" id="planWorkspace">
-          <div class="sample-plan" id="samplePlan">
-            <span class="plan-title">KITCHEN LAYOUT · LEVEL 1</span>
-            <div class="plan-wall wall-top"></div><div class="plan-wall wall-left"></div><div class="plan-wall wall-right"></div><div class="plan-wall wall-bottom"></div>
-            <div class="island">ISLAND<br>2400 × 900</div><div class="cabinet cabinet-top">TALL UNITS</div><div class="cabinet cabinet-bottom">BASE CABINETS</div><div class="sink">SINK</div><div class="door">DOOR</div>
-          </div>
-          <canvas id="markupCanvas"></canvas>
-          <div class="pins-layer" id="pinsLayer"></div>
-        </section>
-        <aside class="pin-panel">
-          <div class="heading"><h2>Plan pins</h2><button id="addPin">+ Add pin</button></div>
-          <div id="pinList"></div>
-        </aside>
-      </div>
-    </section>
+      <div id="pinList"></div>
+    </aside>
+  </div>
+</section>
 
-    <section class="page basic" id="materials">
-      <p class="eyebrow">PROCUREMENT</p><h1>Materials</h1>
-      <article><b>12 items to receive</b><p>Tile adhesive delivery is expected tomorrow.</p></article>
-      <article><b>04 low-stock items</b><p>Review supplies before your next site visit.</p></article>
-    </section>
+    <!-- Materials (static for now) -->
+    <section class="page" id="materials"></section>
 
-    <section class="page basic" id="claims">
-      <p class="eyebrow">PAYMENTS</p><h1>Claims</h1>
-      <article><b>September progress claim</b><p>Draft · $18,400.00 · Ready for review</p></article>
-      <article><b>August claim</b><p>Approved · $14,250.00</p></article>
-    </section>
 
-    <section class="page basic" id="handover">
-      <p class="eyebrow">PROJECT CLOSEOUT</p><h1>Handover</h1>
+    <!-- Handover (static for now) -->
+    <section class="page" id="handover"></section>
+      <p class="eyebrow">PROJECT CLOSEOUT</p>
+      <h1>Handover</h1>
       <article><b>7 / 12 items complete</b><p>Owner manuals and appliance documents are collected.</p></article>
     </section>
   </main>
 
+  <!-- Proof Modal -->
   <div class="backdrop" id="proofModal">
     <form class="modal" id="proofForm">
       <button type="button" class="close">×</button>
       <p class="eyebrow">NEW SITE DOCUMENTATION</p>
       <h2>Add work proof</h2>
-      <label>Task<select><option>Kitchen cabinetry installation</option><option>Electrical rough-in inspection</option></select></label>
+      <label>Task
+        <select>
+          <option>Kitchen cabinetry installation</option>
+          <option>Electrical rough-in inspection</option>
+          <option>Other</option>
+        </select>
+      </label>
       <div class="uploads">
         <label>Before photo<input type="file" accept="image/*"></label>
         <label>After photo<input type="file" accept="image/*"></label>
       </div>
       <label>Work notes<textarea placeholder="Describe what was completed..."></textarea></label>
-      <label>Task status<select><option>Completed</option><option>In progress</option><option>Blocked</option></select></label>
+      <label>Task status
+        <select>
+          <option>Completed</option>
+          <option>In progress</option>
+          <option>Blocked</option>
+        </select>
+      </label>
       <button class="save">Save work proof</button>
     </form>
   </div>
 
+  <!-- Measurement Modal -->
   <div class="backdrop" id="measurementModal">
     <form class="modal" id="measurementForm">
       <button type="button" class="close">×</button>
       <p class="eyebrow">NEW SITE DIMENSION</p>
       <h2>Add measurement</h2>
-      <label>Measurement name<input required placeholder="e.g. Guest bathroom floor"></label>
-      <label>Site photo<input type="file" accept="image/*"></label>
+
+      <label>Measurement name
+        <input id="measureName" required placeholder="e.g. Kitchen cabinet, Curtain, Flooring">
+      </label>
+
+      <label>Site photo
+        <input id="measurePhoto" type="file" accept="image/*">
+      </label>
+
+      <label>Unit
+        <select id="measureUnit">
+          <option value="m" selected>Metre (m)</option>
+          <option value="cm">Centimetre (cm)</option>
+          <option value="inch">Inch</option>
+          <option value="ft">Feet (ft)</option>
+        </select>
+      </label>
+
       <div class="dimensions">
-        <label>Length (m)<input id="length" type="number" min="0" step="0.01" required></label>
-        <label>Width (m)<input id="width" type="number" min="0" step="0.01" required></label>
-        <label>Height (m)<input type="number" min="0" step="0.01"></label>
+        <label>Length
+          <input id="length" type="number" min="0" step="0.01" placeholder="0">
+        </label>
+        <label>Width
+          <input id="width" type="number" min="0" step="0.01" placeholder="0">
+        </label>
+        <label>Height
+          <input id="height" type="number" min="0" step="0.01" placeholder="0">
+        </label>
       </div>
-      <div class="area">Calculated area <b id="areaValue">0.00 m²</b></div>
+
+      <div class="area" style="font-size:12px; color:var(--muted);">
+        Values will be converted and saved in metres
+      </div>
+
       <button class="save">Save measurement</button>
     </form>
   </div>
 
+  <!-- Report Modal -->
   <div class="backdrop" id="reportModal">
-    <section class="modal"><button class="close">×</button><p class="eyebrow">PROJECT REPORT</p><h2>Hillside Residence</h2><p>24 completed tasks · 8 in progress · 3 open issues</p></section>
+    <section class="modal">
+      <button class="close">×</button>
+      <p class="eyebrow">PROJECT REPORT</p>
+      <h2>Hillside Residence</h2>
+      <p>24 completed tasks · 8 in progress · 3 open issues</p>
+    </section>
   </div>
 
-  <div class="backdrop" id="measurementModal">
-  <form class="modal" id="measurementForm">
-    <button type="button" class="close">×</button>
-    <p class="eyebrow">NEW SITE DIMENSION</p>
-    <h2>Add measurement</h2>
-
-    <label>Measurement name
-      <input id="measureName" required placeholder="e.g. Kitchen cabinet, Curtain, Flooring">
-    </label>
-
-    <label>Site photo
-      <input id="measurePhoto" type="file" accept="image/*">
-    </label>
-
-    <label>Unit
-      <select id="measureUnit">
-        <option value="m" selected>Metre (m)</option>
-        <option value="cm">Centimetre (cm)</option>
-        <option value="inch">Inch</option>
-        <option value="ft">Feet (ft)</option>
-      </select>
-    </label>
-
-    <div class="dimensions">
-      <label>Length
-        <input id="length" type="number" min="0" step="0.01" placeholder="0">
+  <!-- Pin Modal -->
+  <div class="backdrop" id="pinModal">
+    <form class="modal" id="pinForm">
+      <button type="button" class="close">×</button>
+      <p class="eyebrow">NEW PLAN PIN</p>
+      <h2>Add markup pin</h2>
+      <label>Title<input id="pinTitle" required placeholder="e.g. Confirm island power outlet"></label>
+      <label>Category
+        <select id="pinCategory">
+          <option>M&E</option>
+          <option>Built-in</option>
+          <option>Painting</option>
+          <option>Appliance</option>
+          <option>Defect</option>
+        </select>
       </label>
-      <label>Width
-        <input id="width" type="number" min="0" step="0.01" placeholder="0">
+      <label>Description<textarea id="pinDescription" placeholder="Add instructions or a note"></textarea></label>
+      <label>Assigned contractor<input id="pinContractor" placeholder="Contractor name"></label>
+      <label>Status
+        <select id="pinStatus">
+          <option>Open</option>
+          <option>In progress</option>
+          <option>Resolved</option>
+        </select>
       </label>
-      <label>Height
-        <input id="height" type="number" min="0" step="0.01" placeholder="0">
+      <label>Photo attachment<input type="file" accept="image/*"></label>
+      <label>Owner approval
+        <select id="pinApproval">
+          <option>Not requested</option>
+          <option>Awaiting approval</option>
+          <option>Approved</option>
+        </select>
       </label>
-    </div>
+      <button class="save">Save pin</button>
+    </form>
+  </div>
 
-    <div class="area" style="font-size:12px; color:var(--muted);">
-      All values will be converted & saved in metres
-    </div>
-
-    <button class="save">Save measurement</button>
-  </form>
-</div>
   <div class="toast" id="toast"></div>
   <script src="script.js"></script>
 </body>

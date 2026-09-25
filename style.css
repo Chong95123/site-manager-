@@ -122,9 +122,26 @@ h2 { font-size: 20px; }
 .wall-top { top: 70px; left: 70px; right: 70px; height: 7px; }.wall-bottom { bottom: 65px; left: 70px; right: 70px; height: 7px; }.wall-left { top: 70px; bottom: 65px; left: 70px; width: 7px; }.wall-right { top: 70px; right: 70px; bottom: 65px; width: 7px; }
 .island, .cabinet, .sink, .door { position: absolute; display: grid; place-items: center; border: 2px solid #71878b; color: #50656b; font-size: 9px; font-weight: bold; text-align: center; }
 .island { top: 180px; left: 30%; width: 38%; height: 75px; background: #e9e2d5; }.cabinet-top { top: 82px; left: 85px; width: 140px; height: 35px; }.cabinet-bottom { bottom: 77px; right: 85px; width: 165px; height: 35px; }.sink { top: 122px; right: 88px; width: 55px; height: 40px; border-radius: 50%; }.door { bottom: 66px; left: 105px; width: 70px; height: 45px; border-width: 0 2px 2px 0; }
-#markupCanvas, .pins-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+#markupCanvas, .pins-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none; /* allow clicks to pass through empty area */
+}
 #markupCanvas { z-index: 2; pointer-events: none; }.pins-layer { z-index: 3; }
-.plan-pin { position: absolute; width: 28px; height: 28px; border: 2px solid white; border-radius: 50%; background: var(--orange); color: white; box-shadow: 0 3px 8px #6d2e1d5c; font-size: 12px; font-weight: bold; cursor: pointer; }
+.plan-pin {
+  pointer-events: auto; /* pins themselves are clickable */
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid white;
+  border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
 .pin-panel { max-height: 440px; overflow: auto; padding: 0 2px; }.pin-panel .heading { margin: 0 0 9px; }.pin-panel .heading h2 { font-size: 15px; }.pin-panel .heading button { border: 0; background: none; color: var(--orange); font-size: 11px; font-weight: bold; }
 .pin-item { margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-left: 3px solid var(--orange); border-radius: 8px; background: white; cursor: pointer; }.pin-item h3 { margin: 0 0 4px; font-size: 11px; }.pin-item p, .pin-item small { margin: 0; color: var(--muted); font-size: 10px; }.pin-item small { display: block; margin-top: 5px; }
 .original-mode .pins-layer, .original-mode #markupCanvas { display: none; }
