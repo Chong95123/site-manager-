@@ -271,6 +271,45 @@ function applyPlanImage(imageBase64) {
   }
 }
 
+/* =========================================
+   PROJECT PROGRESS (from Plan Items)
+   ========================================= */
+function calculateProjectProgress(projectId) {
+  const pins = (data.pins || []).filter(p => p.projectId === projectId);
+  if (pins.length === 0) return 0;
+
+  const doneCount = pins.filter(p => p.status === "Done").length;
+  return Math.round((doneCount / pins.length) * 100);
+}
+
+async function updateProjectProgress(projectId) {
+  const progress = calculateProjectProgress(projectId);
+
+  // Update local data
+  const project = data.projects.find(p => p.id === projectId);
+  if (project) {
+    project.progress = progress;
+    saveData(data);
+  }
+
+  // Update Supabase
+  if (sb) {
+    const { error } = await sb
+      .from("projects")
+      .update({ progress: progress })
+      .eq("id", projectId);
+
+    if (error) {
+      console.log("Update progress error:", error.message);
+    }
+  }
+
+  // Refresh UI
+  renderSidebar();
+  renderProjectHeader();
+}
+
+
 
 /* =========================================
    Reno Site Manager - Complete Working Version
@@ -409,6 +448,8 @@ function renderSidebar() {
   }));
   saveData(data);
 
+  await updateProjectProgress(data.currentProjectId);   // ← add this line
+
   renderSidebar();
   renderProjectHeader();
   renderTasks();
@@ -429,13 +470,18 @@ function renderSidebar() {
 function renderProjectHeader() {
   const p = data.projects.find(p => p.id === data.currentProjectId);
   if (!p) return;
+
+  // Always recalculate from pins
+  const liveProgress = calculateProjectProgress(data.currentProjectId);
+  p.progress = liveProgress;
+
   document.querySelector(".current-project").textContent = p.name;
   document.querySelector("#projects h1").textContent = p.name;
   document.querySelector("#projects .hero").innerHTML = `
     <span>${p.phase}</span>
     <b>${p.status}</b>
-    <h2>${p.progress}% complete</h2>
-    <div class="bar"><i style="width:${p.progress}%"></i></div>
+    <h2>${liveProgress}% complete</h2>
+    <div class="bar"><i style="width:${liveProgress}%"></i></div>
     <p>${p.team} site team members · Due ${p.due}</p>
   `;
 }
@@ -1101,15 +1147,20 @@ function renderPlans() {
     });
   }
 
-  // Toggle Done / Open
+    // Toggle Done / Open
   document.querySelectorAll(".toggle-pin").forEach(btn => {
-    btn.onclick = (e) => {
+    btn.onclick = async (e) => {
       e.stopPropagation();
       const pin = data.pins.find(p => p.id === btn.dataset.id);
       if (pin) {
         pin.status = pin.status === "Done" ? "Open" : "Done";
         saveData(data);
+
+        // Update in Supabase
+        await updatePinInSupabase(pin.id, pin);
+
         renderPlans();
+        await updateProjectProgress(data.currentProjectId);
         showToast(pin.status === "Done" ? "Marked as Done" : "Marked as Open");
       }
     };
@@ -1133,6 +1184,7 @@ function renderPlans() {
         data.pins = data.pins.filter(p => p.id !== btn.dataset.id);
         saveData(data);
         renderPlans();
+        await updateProjectProgress(data.currentProjectId);   // ← add this line
         showToast("Pin deleted");
       }
     }
@@ -1293,6 +1345,7 @@ document.getElementById("pinForm").onsubmit = async (e) => {
   saveData(data);
   closePinForm();
   renderPlans();
+  await updateProjectProgress(data.currentProjectId);   // ← add this line
 };
 
 /* Click on plan to place pin - FIXED */
