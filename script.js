@@ -1,4 +1,278 @@
 /* =========================================
+   SUPABASE CONNECTION (Safe)
+   ========================================= */
+const SUPABASE_URL = "https://hzhotlyvuxqykkttilef.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6aG90bHl2dXhxeWtrdHRpbGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNjY1MzUsImV4cCI6MjEwNTk0MjUzNX0.qW1C7wYI6rSBHkHkTle6A37z_uV5DSk94AmZuOJZauw";
+
+let sb = null;   // we use "sb" instead of "supabase" to avoid conflict
+
+try {
+  if (window.supabase) {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("Supabase client created");
+  } else {
+    console.log("Supabase library not loaded yet");
+  }
+} catch (err) {
+  console.log("Supabase init error:", err.message);
+}
+
+async function testSupabaseConnection() {
+  if (!sb) {
+    console.log("Supabase not ready");
+    return;
+  }
+  try {
+    const { data, error } = await sb.from("projects").select("id").limit(1);
+    if (error) {
+      console.log("Supabase test error:", error.message);
+    } else {
+      console.log("Supabase connected successfully!");
+    }
+  } catch (err) {
+    console.log("Supabase test failed:", err.message);
+  }
+}
+
+setTimeout(testSupabaseConnection, 1000);
+
+
+/* =========================================
+   PLAN ITEMS (Pins) – Supabase
+   ========================================= */
+
+// Load pins for one project
+async function loadPinsFromSupabase(projectId) {
+  if (!sb || !projectId) return [];
+
+  const { data, error } = await sb
+    .from("plan_items")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.log("Load pins error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+// Create a new pin in Supabase
+async function createPinInSupabase(pin) {
+  if (!sb) return null;
+
+  const { data, error } = await sb
+    .from("plan_items")
+    .insert([{
+      project_id: pin.projectId,
+      title: pin.title,
+      category: pin.category,
+      status: pin.status,
+      notes: pin.notes,
+      x: pin.x,
+      y: pin.y
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.log("Create pin error:", error.message);
+    return null;
+  }
+  return data;
+}
+
+// Update an existing pin
+async function updatePinInSupabase(id, pin) {
+  if (!sb) return null;
+
+  const { data, error } = await sb
+    .from("plan_items")
+    .update({
+      title: pin.title,
+      category: pin.category,
+      status: pin.status,
+      notes: pin.notes,
+      x: pin.x,
+      y: pin.y
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.log("Update pin error:", error.message);
+    return null;
+  }
+  return data;
+}
+
+// Delete a pin
+async function deletePinInSupabase(id) {
+  if (!sb) return false;
+
+  const { error } = await sb
+    .from("plan_items")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.log("Delete pin error:", error.message);
+    return false;
+  }
+  return true;
+}
+
+/* =========================================
+   PROJECTS – Supabase functions
+   ========================================= */
+
+// Load all projects from Supabase
+async function loadProjectsFromSupabase() {
+  if (!sb) return [];
+
+  const { data, error } = await sb
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.log("Load projects error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+// Create a new project in Supabase
+async function createProjectInSupabase(project) {
+  if (!sb) return null;
+
+  const { data, error } = await sb
+    .from("projects")
+    .insert([{
+      name: project.name,
+      phase: project.phase,
+      status: project.status || "On track",
+      progress: project.progress || 0,
+      team: project.team || 0,
+      due_date: project.due || null,
+      owner_name: project.owner || null
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.log("Create project error:", error.message);
+    showToast("Error creating project");
+    return null;
+  }
+  return data;
+}
+
+// Quick test – create one sample project (run only once)
+async function createSampleProject() {
+  const existing = await loadProjectsFromSupabase();
+  if (existing.length > 0) {
+    console.log("Projects already exist:", existing.length);
+    return;
+  }
+
+  const sample = await createProjectInSupabase({
+    name: "Hillside Residence",
+    phase: "Phase 2 · Interior renovation",
+    status: "On track",
+    progress: 0,
+    team: 6,
+    due: "2025-10-24",
+    owner: "JM"
+  });
+
+  if (sample) {
+    console.log("Sample project created:", sample);
+    showToast("Sample project created in Supabase");
+  }
+}
+
+// Run once after connection
+setTimeout(createSampleProject, 1500);
+
+
+/* =========================================
+   LOAD PROJECTS INTO THE APP
+   ========================================= */
+async function initProjectsFromSupabase() {
+  const remoteProjects = await loadProjectsFromSupabase();
+
+  if (remoteProjects.length === 0) {
+    console.log("No projects in Supabase yet");
+    return;
+  }
+
+  // Convert Supabase format → your app format
+  data.projects = remoteProjects.map(p => ({
+    id: p.id,
+    name: p.name,
+    phase: p.phase || "",
+    status: p.status || "On track",
+    progress: p.progress || 0,
+    team: p.team || 0,
+    due: p.due_date || "",
+    owner: p.owner_name || ""
+  }));
+
+  // Set current project to the first one if needed
+  if (!data.currentProjectId || !data.projects.find(p => p.id === data.currentProjectId)) {
+    data.currentProjectId = data.projects[0].id;
+  }
+
+  saveData(data);          // keep localStorage in sync for now
+  renderSidebar();
+  renderProjectHeader();
+  renderTasks();
+  renderProofs();
+  renderMeasurements();
+  renderMaterials();
+  renderPlans();
+  renderHandover();
+
+  console.log("Projects loaded from Supabase:", data.projects.length);
+}
+
+// Run after everything is ready
+setTimeout(initProjectsFromSupabase, 2000);
+
+
+/* ---------- Plan Image Save / Load ---------- */
+function savePlanImage(projectId, imageBase64) {
+  if (!data.planImages) data.planImages = {};
+  data.planImages[projectId] = imageBase64;
+  saveData(data);
+}
+
+function loadPlanImage(projectId) {
+  if (!data.planImages) return null;
+  return data.planImages[projectId] || null;
+}
+
+function applyPlanImage(imageBase64) {
+  const plan = document.getElementById("samplePlan");
+  if (!plan) return;
+
+  if (imageBase64) {
+    plan.style.backgroundImage = `url(${imageBase64})`;
+    plan.style.backgroundSize = "contain";
+    plan.style.backgroundPosition = "center";
+    plan.style.backgroundRepeat = "no-repeat";
+    plan.innerHTML = "";
+  } else {
+    plan.style.backgroundImage = "";
+    plan.innerHTML = `<span class="plan-title">Upload a floor plan to start</span>`;
+  }
+}
+
+
+/* =========================================
    Reno Site Manager - Complete Working Version
    ========================================= */
 
@@ -77,6 +351,7 @@ function closeModal(el) {
   el.classList.remove("open");
 }
 
+
 /* ---------- Tabs ---------- */
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.onclick = () => {
@@ -116,17 +391,36 @@ function renderSidebar() {
   sidebar.querySelector(".sidebar-close").onclick = () => setSidebarCollapsed(true);
 
   sidebar.querySelectorAll(".project-item").forEach((btn) => {
-    btn.onclick = () => {
-      data.currentProjectId = btn.dataset.id;
-      saveData(data);
-      renderSidebar();
-      renderProjectHeader();
-      renderTasks();
-      renderProofs();
-      renderMeasurements();
-      renderMaterials();
-      showToast("Switched to " + btn.childNodes[0].textContent.trim());
-    };
+    btn.onclick = async () => {
+  data.currentProjectId = btn.dataset.id;
+  saveData(data);
+
+  // Load pins from Supabase for this project
+  const remotePins = await loadPinsFromSupabase(data.currentProjectId);
+  data.pins = remotePins.map(p => ({
+    id: p.id,
+    projectId: p.project_id,
+    title: p.title,
+    category: p.category,
+    status: p.status,
+    notes: p.notes || "",
+    x: p.x,
+    y: p.y
+  }));
+  saveData(data);
+
+  renderSidebar();
+  renderProjectHeader();
+  renderTasks();
+  renderProofs();
+  renderMeasurements();
+  renderMaterials();
+  renderPlans();
+  renderHandover();
+  applyPlanImage(loadPlanImage(data.currentProjectId));
+
+  showToast("Switched to " + btn.childNodes[0].textContent.trim());
+};
   });
 
   sidebar.querySelector(".new-project").onclick = () => openModal("projectModal");
@@ -178,10 +472,10 @@ projectModal.querySelector(".form-close").onclick = closeProjectForm;
 projectModal.querySelector(".cancel-project").onclick = closeProjectForm;
 projectModal.onclick = (e) => { if (e.target === projectModal) closeProjectForm(); };
 
-document.getElementById("projectForm").onsubmit = (e) => {
+document.getElementById("projectForm").onsubmit = async (e) => {
   e.preventDefault();
-  const newProject = {
-    id: "p" + Date.now(),
+
+  const newProjectData = {
     name: document.getElementById("projectName").value,
     phase: document.getElementById("projectPhase").value,
     status: "New project",
@@ -190,19 +484,43 @@ document.getElementById("projectForm").onsubmit = (e) => {
     due: document.getElementById("projectDue").value,
     owner: document.getElementById("projectOwner").value
   };
-  data.projects.push(newProject);
-  data.currentProjectId = newProject.id;
+
+  const created = await createProjectInSupabase(newProjectData);
+
+  if (!created) {
+    showToast("Failed to create project");
+    return;
+  }
+
+  const localProject = {
+    id: created.id,
+    name: created.name,
+    phase: created.phase,
+    status: created.status,
+    progress: created.progress,
+    team: created.team,
+    due: created.due_date,
+    owner: created.owner_name
+  };
+
+  data.projects.push(localProject);
+  data.currentProjectId = localProject.id;
   saveData(data);
+
   closeProjectForm();
   renderSidebar();
   renderProjectHeader();
   renderTasks();
   renderProofs();
   renderMeasurements();
+  renderMaterials();
   renderPlans();
   renderHandover();
+  applyPlanImage(loadPlanImage(data.currentProjectId));
+
   showToast("Project created");
 };
+
 
 /* ---------- Tasks ---------- */
 const statusMap = { todo: "To do", inprogress: "In progress", review: "Review", approved: "Approved" };
@@ -730,7 +1048,7 @@ function renderPlans() {
   const list = data.pins.filter(p => p.projectId === data.currentProjectId);
   const completed = list.filter(p => p.status === "Done").length;
 
-  // Summary
+  // Update summary
   const summary = document.getElementById("planSummary");
   if (summary) {
     summary.innerHTML = `<b>${list.length}</b> pins · <span>${completed} completed</span>`;
@@ -807,17 +1125,43 @@ function renderPlans() {
 
   // Delete
   document.querySelectorAll(".delete-pin").forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      if (confirm("Delete this pin?")) {
+  btn.onclick = async (e) => {
+    e.stopPropagation();
+    if (confirm("Delete this pin?")) {
+      const success = await deletePinInSupabase(btn.dataset.id);
+      if (success) {
         data.pins = data.pins.filter(p => p.id !== btn.dataset.id);
         saveData(data);
         renderPlans();
         showToast("Pin deleted");
       }
-    };
-  });
+    }
+  };
+});
 }
+
+
+/* Click empty plan to add new pin */
+const pinsLayer = document.getElementById("pinsLayer");
+
+if (pinsLayer) {
+  pinsLayer.onclick = (e) => {
+    // Only create a new pin when clicking the empty plan area
+    if (e.target !== pinsLayer) return;
+
+    const rect = pinsLayer.getBoundingClientRect();
+
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    openPinModal(
+      null,
+      Math.max(0, Math.min(100, x)),
+      Math.max(0, Math.min(100, y))
+    );
+  };
+}
+
 
 /* Pin Modal */
 const pinModal = document.createElement("div");
@@ -833,19 +1177,20 @@ pinModal.innerHTML = `
     <input type="hidden" id="pinY">
 
     <label>Title
-      <input id="pinTitle" required placeholder="e.g. Confirm power outlet position">
-    </label>
-    <label>Category
-      <select id="pinCategory">
-        <option>M&E</option>
-        <option>Built-in</option>
-        <option>Painting</option>
-        <option>Flooring</option>
-        <option>Appliance</option>
-        <option>Defect</option>
-        <option>Other</option>
-      </select>
-    </label>
+  <input id="pinTitle" required placeholder="e.g. Confirm power outlet position">
+</label>
+
+<label>Category
+  <select id="pinCategory">
+    <option>M&E</option>
+    <option>Built-in</option>
+    <option>Painting</option>
+    <option>Flooring</option>
+    <option>Appliance</option>
+    <option>Defect</option>
+    <option>Other</option>
+  </select>
+</label>
     <label>Status
       <select id="pinStatus">
         <option>Open</option>
@@ -900,7 +1245,7 @@ pinModal.querySelector(".form-close").onclick = closePinForm;
 pinModal.querySelector(".cancel-pin").onclick = closePinForm;
 pinModal.onclick = e => { if (e.target === pinModal) closePinForm(); };
 
-document.getElementById("pinForm").onsubmit = (e) => {
+document.getElementById("pinForm").onsubmit = async (e) => {
   e.preventDefault();
 
   if (!data.pins) data.pins = [];
@@ -911,21 +1256,38 @@ document.getElementById("pinForm").onsubmit = (e) => {
     category: document.getElementById("pinCategory").value,
     status: document.getElementById("pinStatus").value,
     notes: document.getElementById("pinNotes").value,
-    x: Number(document.getElementById("pinX").value),
-    y: Number(document.getElementById("pinY").value),
+    x: Number(document.getElementById("pinX").value) || 50,
+    y: Number(document.getElementById("pinY").value) || 50,
     projectId: data.currentProjectId
   };
 
   if (id) {
-    const pin = data.pins.find(p => p.id === id);
-    Object.assign(pin, payload);
-    showToast("Pin updated");
+    // Update existing pin
+    const updated = await updatePinInSupabase(id, payload);
+    if (updated) {
+      const pin = data.pins.find(p => p.id === id);
+      if (pin) Object.assign(pin, payload);
+      showToast("Pin updated");
+    }
   } else {
-    data.pins.push({
-      id: generateId("pin"),
-      ...payload
-    });
-    showToast("Pin added");
+    // Create new pin
+    const created = await createPinInSupabase(payload);
+    if (created) {
+      data.pins.push({
+        id: created.id,
+        projectId: created.project_id,
+        title: created.title,
+        category: created.category,
+        status: created.status,
+        notes: created.notes || "",
+        x: created.x,
+        y: created.y
+      });
+      showToast("Pin added");
+    } else {
+      showToast("Failed to save pin");
+      return;
+    }
   }
 
   saveData(data);
@@ -1317,6 +1679,7 @@ renderMeasurements();
 renderMaterials();
 renderPlans();
 renderHandover();
+applyPlanImage(loadPlanImage(data.currentProjectId));
 
 /* Close buttons */
 document.querySelectorAll(".close").forEach(btn => {
@@ -1326,5 +1689,4 @@ document.querySelectorAll(".backdrop").forEach(modal => {
   modal.onclick = e => { if (e.target === modal) closeModal(modal); };
 });
 
-/* Keep old report button working */
 document.getElementById("viewReport")?.addEventListener("click", () => openModal("reportModal"));
