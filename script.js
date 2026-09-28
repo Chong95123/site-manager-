@@ -384,10 +384,14 @@ function showToast(message) {
 }
 
 function openModal(id) {
-  document.getElementById(id).classList.add("open");
-}
-function closeModal(el) {
-  el.classList.remove("open");
+  const modal = document.getElementById(id);
+  if (!modal) return;
+
+  modal.style.display = "flex";   // make sure it can show
+  modal.classList.add("open");
+
+  // Lock scroll on mobile when modal is open
+  document.body.style.overflow = "hidden";
 }
 
 
@@ -1337,13 +1341,22 @@ function openPinModal(editId = null, x = 50, y = 50) {
 
 function closePinForm() {
   const modal = document.getElementById("pinModal");
-  if (modal) {
-    modal.classList.remove("open");
+  if (!modal) return;
+
+  // Remove open class
+  modal.classList.remove("open");
+
+  // Force hide (important for mobile)
+  modal.style.display = "none";
+
+  // Close keyboard on phone
+  if (document.activeElement && document.activeElement.blur) {
+    document.activeElement.blur();
   }
-  // Also force-close any open backdrop (extra safety)
-  document.querySelectorAll(".backdrop.open").forEach(el => {
-    if (el.id === "pinModal") el.classList.remove("open");
-  });
+
+  // Unlock body scroll (mobile fix)
+  document.body.style.overflow = "";
+  document.body.style.position = "";
 }
 
 
@@ -1448,6 +1461,20 @@ document.getElementById("planUpload")?.addEventListener("change", function(e) {
 document.getElementById("addPinBtn")?.addEventListener("click", function() {
   openPinModal(null, 50, 50);
 });
+
+
+// Mobile-friendly Save button
+setTimeout(() => {
+  const saveBtn = document.querySelector("#pinForm button.save");
+  if (saveBtn) {
+    saveBtn.addEventListener("touchend", function (e) {
+      // Let the form submit happen, then force close
+      setTimeout(() => {
+        closePinForm();
+      }, 50);
+    }, { passive: true });
+  }
+}, 800);
 
 
 // Extra: make Save button close the form even if onsubmit fails
