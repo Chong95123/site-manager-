@@ -1360,6 +1360,9 @@ pinModal.onclick = e => { if (e.target === pinModal) closePinForm(); };
 document.getElementById("pinForm").onsubmit = async (e) => {
   e.preventDefault();
 
+  // 1. Close the form immediately (important for mobile)
+  closePinForm();
+
   if (!data.pins) data.pins = [];
 
   const id = document.getElementById("pinId").value;
@@ -1373,43 +1376,48 @@ document.getElementById("pinForm").onsubmit = async (e) => {
     projectId: data.currentProjectId
   };
 
-  if (id) {
-    // Update existing pin
-    const updated = await updatePinInSupabase(id, payload);
-    if (updated) {
-      const pin = data.pins.find(p => p.id === id);
-      if (pin) Object.assign(pin, payload);
-      showToast("Pin updated");
-    }
-  } else {
-    // Create new pin
-    const created = await createPinInSupabase(payload);
-    if (created) {
-      data.pins.push({
-        id: created.id,
-        projectId: created.project_id,
-        title: created.title,
-        category: created.category,
-        status: created.status,
-        notes: created.notes || "",
-        x: created.x,
-        y: created.y
-      });
-      showToast("Pin added");
+  try {
+    if (id) {
+      // Update existing pin
+      const updated = await updatePinInSupabase(id, payload);
+      if (updated) {
+        const pin = data.pins.find(p => p.id === id);
+        if (pin) Object.assign(pin, payload);
+        showToast("Pin updated");
+      } else {
+        showToast("Failed to update pin");
+      }
     } else {
-      showToast("Failed to save pin");
-      return;
+      // Create new pin
+      const created = await createPinInSupabase(payload);
+      if (created) {
+        data.pins.push({
+          id: created.id,
+          projectId: created.project_id,
+          title: created.title,
+          category: created.category,
+          status: created.status,
+          notes: created.notes || "",
+          x: created.x,
+          y: created.y
+        });
+        showToast("Pin added");
+      } else {
+        showToast("Failed to save pin");
+      }
     }
-  }
 
     saveData(data);
-  renderPlans();
-  await updateProjectProgress(data.currentProjectId);
+    renderPlans();
+    await updateProjectProgress(data.currentProjectId);
 
-  // Always close the form (important for mobile)
-  closePinForm();
-  showToast(id ? "Pin updated" : "Pin added");
+  } catch (err) {
+    console.log("Save pin error:", err);
+    showToast("Error saving pin");
+  }
 };
+
+
 
 /* Click on plan to place pin - FIXED */
 const planWorkspace = document.getElementById("planWorkspace");
