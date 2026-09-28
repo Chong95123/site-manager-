@@ -1336,25 +1336,17 @@ function openPinModal(editId = null, x = 50, y = 50) {
 }
 
 function closePinForm() {
-  closeModal(pinModal);
+  const modal = document.getElementById("pinModal");
+  if (modal) {
+    modal.classList.remove("open");
+  }
+  // Also force-close any open backdrop (extra safety)
+  document.querySelectorAll(".backdrop.open").forEach(el => {
+    if (el.id === "pinModal") el.classList.remove("open");
+  });
 }
-const closeBtn = pinModal.querySelector(".form-close") || pinModal.querySelector(".close");
-const cancelBtn = pinModal.querySelector(".cancel-pin");
 
-if (closeBtn) {
-  closeBtn.onclick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    closePinForm();
-  };
-}
-if (cancelBtn) {
-  cancelBtn.onclick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    closePinForm();
-  };
-}
+
 pinModal.onclick = e => { if (e.target === pinModal) closePinForm(); };
 
 document.getElementById("pinForm").onsubmit = async (e) => {
@@ -1457,6 +1449,19 @@ document.getElementById("addPinBtn")?.addEventListener("click", function() {
   openPinModal(null, 50, 50);
 });
 
+
+// Extra: make Save button close the form even if onsubmit fails
+setTimeout(() => {
+  const saveBtn = document.querySelector("#pinForm .save");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", function () {
+      // Small delay so the form values can still be read
+      setTimeout(() => {
+        closePinForm();
+      }, 100);
+    });
+  }
+}, 500);
 
 /* ---------- Handover (with Signature) ---------- */
 function renderHandover() {
