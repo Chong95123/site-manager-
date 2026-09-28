@@ -146,3 +146,13 @@ h2 { font-size: 20px; }
 .pin-item { margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-left: 3px solid var(--orange); border-radius: 8px; background: white; cursor: pointer; }.pin-item h3 { margin: 0 0 4px; font-size: 11px; }.pin-item p, .pin-item small { margin: 0; color: var(--muted); font-size: 10px; }.pin-item small { display: block; margin-top: 5px; }
 .original-mode .pins-layer, .original-mode #markupCanvas { display: none; }
 @media (max-width: 650px) { .plan-layout { grid-template-columns: 1fr; }.plan-workspace { min-height: 360px; }.pin-panel { max-height: none; }.plan-toolbar { align-items: flex-start; flex-direction: column; } }
+/* Mobile modal fix */
+.backdrop:not(.open) {
+  display: none !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+.backdrop:not(.open) {
+  display: none !important;
+  pointer-events: none !important;
+}

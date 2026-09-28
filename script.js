@@ -386,12 +386,15 @@ function showToast(message) {
 function openModal(id) {
   const modal = document.getElementById(id);
   if (!modal) return;
-
-  modal.style.display = "flex";   // make sure it can show
+  modal.style.display = "flex";
   modal.classList.add("open");
-
-  // Lock scroll on mobile when modal is open
   document.body.style.overflow = "hidden";
+}
+function closeModal(el) {
+  if (!el) return;
+  el.classList.remove("open");
+  el.style.display = "none";
+  document.body.style.overflow = "";
 }
 
 
@@ -1342,30 +1345,28 @@ function openPinModal(editId = null, x = 50, y = 50) {
 function closePinForm() {
   const modal = document.getElementById("pinModal");
   if (!modal) return;
-
-  // Remove open class
   modal.classList.remove("open");
-
-  // Force hide (important for mobile)
   modal.style.display = "none";
-
-  // Close keyboard on phone
-  if (document.activeElement && document.activeElement.blur) {
-    document.activeElement.blur();
-  }
-
-  // Unlock body scroll (mobile fix)
+  if (document.activeElement) document.activeElement.blur();
   document.body.style.overflow = "";
-  document.body.style.position = "";
 }
 
-
-pinModal.onclick = e => { if (e.target === pinModal) closePinForm(); };
-
-document.getElementById("pinForm").onsubmit = async (e) => {
+// Close buttons
+pinModal.querySelector(".form-close").onclick = (e) => {
   e.preventDefault();
+  closePinForm();
+};
+pinModal.querySelector(".cancel-pin").onclick = (e) => {
+  e.preventDefault();
+  closePinForm();
+};
+pinModal.onclick = (e) => {
+  if (e.target === pinModal) closePinForm();
+};
 
-  // 1. Close the form immediately (important for mobile)
+// ONE clean save function
+async function savePinData() {
+  // Close first (important for phone)
   closePinForm();
 
   if (!data.pins) data.pins = [];
@@ -1383,17 +1384,13 @@ document.getElementById("pinForm").onsubmit = async (e) => {
 
   try {
     if (id) {
-      // Update existing pin
       const updated = await updatePinInSupabase(id, payload);
       if (updated) {
         const pin = data.pins.find(p => p.id === id);
         if (pin) Object.assign(pin, payload);
         showToast("Pin updated");
-      } else {
-        showToast("Failed to update pin");
       }
     } else {
-      // Create new pin
       const created = await createPinInSupabase(payload);
       if (created) {
         data.pins.push({
@@ -1414,13 +1411,34 @@ document.getElementById("pinForm").onsubmit = async (e) => {
 
     saveData(data);
     renderPlans();
-    await updateProjectProgress(data.currentProjectId);
-
+    if (typeof updateProjectProgress === "function") {
+      await updateProjectProgress(data.currentProjectId);
+    }
   } catch (err) {
     console.log("Save pin error:", err);
     showToast("Error saving pin");
   }
+}
+
+// Form submit
+document.getElementById("pinForm").onsubmit = (e) => {
+  e.preventDefault();
+  savePinData();
 };
+
+// Also bind the Save button click (better on mobile)
+const pinSaveBtn = document.querySelector("#pinForm .save");
+if (pinSaveBtn) {
+  pinSaveBtn.onclick = (e) => {
+    e.preventDefault();
+    savePinData();
+  };
+}
+
+document.getElementById("pinSaveBtn")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  savePinData();
+});
 
 
 
