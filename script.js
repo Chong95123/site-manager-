@@ -471,19 +471,64 @@ function renderProjectHeader() {
   const p = data.projects.find(p => p.id === data.currentProjectId);
   if (!p) return;
 
-  // Always recalculate from pins
+  // Live progress from pins
   const liveProgress = calculateProjectProgress(data.currentProjectId);
   p.progress = liveProgress;
 
+  // Live counts
+  const projectId = data.currentProjectId;
+  const inProgressTasks = (data.tasks || []).filter(t => t.projectId === projectId && t.status === "inprogress").length;
+  const proofCount = (data.proofs || []).filter(pr => pr.projectId === projectId).length;
+  const pins = (data.pins || []).filter(pin => pin.projectId === projectId);
+  const pinsDone = pins.filter(pin => pin.status === "Done").length;
+
+  // Update header text
   document.querySelector(".current-project").textContent = p.name;
   document.querySelector("#projects h1").textContent = p.name;
+
+  // Update hero
   document.querySelector("#projects .hero").innerHTML = `
-    <span>${p.phase}</span>
-    <b>${p.status}</b>
+    <span>${p.phase || ""}</span>
+    <b>${p.status || "On track"}</b>
     <h2>${liveProgress}% complete</h2>
     <div class="bar"><i style="width:${liveProgress}%"></i></div>
-    <p>${p.team} site team members · Due ${p.due}</p>
+    <p>${p.team || 0} site team members · Due ${p.due || "-"}</p>
   `;
+
+  // Update Site overview cards (make them live + clickable)
+  const cardsContainer = document.querySelector("#projects .cards");
+  if (cardsContainer) {
+    cardsContainer.innerHTML = `
+      <article class="clickable-card" data-goto="tasks" style="cursor:pointer;">
+        <small>In progress</small>
+        <strong>${inProgressTasks}</strong>
+        <p>Tasks this week</p>
+      </article>
+      <article class="clickable-card" data-goto="proof" style="cursor:pointer;">
+        <small>Work proofs</small>
+        <strong>${proofCount}</strong>
+        <p>Photos recorded</p>
+      </article>
+      <article class="clickable-card" data-goto="plans" style="cursor:pointer;">
+        <small>Plans & Pins</small>
+        <strong>${pinsDone}/${pins.length}</strong>
+        <p>Pins completed</p>
+      </article>
+    `;
+
+    // Make cards jump to the correct tab
+    cardsContainer.querySelectorAll(".clickable-card").forEach(card => {
+      card.onclick = () => {
+        const target = card.dataset.goto;
+        document.querySelectorAll(".tab").forEach(tab => {
+          tab.classList.toggle("active", tab.dataset.page === target);
+        });
+        document.querySelectorAll(".page").forEach(page => {
+          page.classList.toggle("active", page.id === target);
+        });
+      };
+    });
+  }
 }
 
 /* ---------- Project Modal ---------- */
@@ -1293,8 +1338,23 @@ function openPinModal(editId = null, x = 50, y = 50) {
 function closePinForm() {
   closeModal(pinModal);
 }
-pinModal.querySelector(".form-close").onclick = closePinForm;
-pinModal.querySelector(".cancel-pin").onclick = closePinForm;
+const closeBtn = pinModal.querySelector(".form-close") || pinModal.querySelector(".close");
+const cancelBtn = pinModal.querySelector(".cancel-pin");
+
+if (closeBtn) {
+  closeBtn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closePinForm();
+  };
+}
+if (cancelBtn) {
+  cancelBtn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closePinForm();
+  };
+}
 pinModal.onclick = e => { if (e.target === pinModal) closePinForm(); };
 
 document.getElementById("pinForm").onsubmit = async (e) => {
@@ -1342,10 +1402,13 @@ document.getElementById("pinForm").onsubmit = async (e) => {
     }
   }
 
-  saveData(data);
-  closePinForm();
+    saveData(data);
   renderPlans();
-  await updateProjectProgress(data.currentProjectId);   // ← add this line
+  await updateProjectProgress(data.currentProjectId);
+
+  // Always close the form (important for mobile)
+  closePinForm();
+  showToast(id ? "Pin updated" : "Pin added");
 };
 
 /* Click on plan to place pin - FIXED */
