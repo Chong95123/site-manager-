@@ -683,11 +683,15 @@ function renderTasks() {
 }
 
 function taskCardHTML(task) {
+  const linkedPin = (data.pins || []).find(p => p.id === task.planItemId);
+  const pinLabel = linkedPin ? linkedPin.title : null;
+
   return `
     <article class="task-card" draggable="true" data-id="${task.id}">
       <span class="priority ${task.priority.toLowerCase()}">${task.priority}</span>
       <h3>${task.title}</h3>
       <p>${task.location}</p>
+      ${pinLabel ? `<p style="font-size:11px; color:var(--orange);">📌 ${pinLabel}</p>` : ""}
       <div>Contractor: ${task.contractor}<b>${task.due}</b></div>
       <footer>Photos: ${task.photos || 0} <em>${task.approval}</em></footer>
       ${task.status === "approved" ? '<div class="payment">Eligible for payment</div>' : ""}
@@ -719,6 +723,11 @@ taskModal.innerHTML = `
         <option>Low</option>
       </select>
     </label>
+    <label>Linked Plan Item (optional)
+      <select id="taskPlanItem">
+        <option value="">— None —</option>
+      </select>
+    </label>
     <label>Status
       <select id="taskStatus">
         <option value="todo">To do</option>
@@ -739,6 +748,12 @@ function openTaskModal(editId = null) {
   document.getElementById("taskForm").reset();
   const idInput = document.getElementById("taskId");
   const titleEl = document.getElementById("taskModalTitle");
+  const planSelect = document.getElementById("taskPlanItem");
+
+  // Fill pin options for current project
+  const pins = (data.pins || []).filter(p => p.projectId === data.currentProjectId);
+  planSelect.innerHTML = `<option value="">— None —</option>` +
+    pins.map(p => `<option value="${p.id}">${p.title} (${p.status})</option>`).join("");
 
   if (editId) {
     const task = data.tasks.find(t => t.id === editId);
@@ -751,10 +766,12 @@ function openTaskModal(editId = null) {
     document.getElementById("taskDue").value = task.due;
     document.getElementById("taskPriority").value = task.priority;
     document.getElementById("taskStatus").value = task.status;
+    planSelect.value = task.planItemId || "";
   } else {
     titleEl.textContent = "Add task";
     idInput.value = "";
   }
+
   openModal("taskModal");
 }
 
@@ -765,7 +782,10 @@ taskModal.onclick = e => { if (e.target === taskModal) closeTaskForm(); };
 
 document.getElementById("taskForm").onsubmit = (e) => {
   e.preventDefault();
+
   const id = document.getElementById("taskId").value;
+  const planItemSelect = document.getElementById("taskPlanItem");
+
   const payload = {
     title: document.getElementById("taskTitle").value,
     location: document.getElementById("taskLocation").value,
@@ -775,17 +795,19 @@ document.getElementById("taskForm").onsubmit = (e) => {
     status: document.getElementById("taskStatus").value,
     photos: 0,
     approval: document.getElementById("taskStatus").value === "approved" ? "Approved" : "Awaiting approval",
-    projectId: data.currentProjectId
+    projectId: data.currentProjectId,
+    planItemId: planItemSelect ? (planItemSelect.value || null) : null
   };
 
   if (id) {
     const task = data.tasks.find(t => t.id === id);
-    Object.assign(task, payload);
+    if (task) Object.assign(task, payload);
     showToast("Task updated");
   } else {
     data.tasks.push({ id: "t" + Date.now(), ...payload });
     showToast("Task added");
   }
+
   saveData(data);
   closeTaskForm();
   renderTasks();
@@ -1087,6 +1109,11 @@ materialModal.innerHTML = `
         <option>roll</option>
       </select>
     </label>
+    <label>Linked Plan Item (optional)
+  <select id="materialPlanItem">
+    <option value="">— None —</option>
+  </select>
+</label>
     <label>Status
       <select id="materialStatus">
         <option>To order</option>
@@ -1106,6 +1133,14 @@ document.body.append(materialModal);
 
 function openMaterialModal() {
   document.getElementById("materialForm").reset();
+
+  const planSelect = document.getElementById("materialPlanItem");
+  if (planSelect) {
+    const pins = (data.pins || []).filter(p => p.projectId === data.currentProjectId);
+    planSelect.innerHTML = `<option value="">— None —</option>` +
+      pins.map(p => `<option value="${p.id}">${p.title} (${p.status})</option>`).join("");
+  }
+
   openModal("materialModal");
 }
 
@@ -1122,14 +1157,15 @@ document.getElementById("materialForm").onsubmit = (e) => {
   if (!data.materials) data.materials = [];
 
   data.materials.push({
-    id: generateId("mat"),
-    projectId: data.currentProjectId,
-    name: document.getElementById("materialName").value,
-    qty: Number(document.getElementById("materialQty").value) || 1,
-    unit: document.getElementById("materialUnit").value,
-    status: document.getElementById("materialStatus").value,
-    notes: document.getElementById("materialNotes").value
-  });
+  id: generateId("mat"),
+  projectId: data.currentProjectId,
+  name: document.getElementById("materialName").value,
+  qty: Number(document.getElementById("materialQty").value) || 1,
+  unit: document.getElementById("materialUnit").value,
+  status: document.getElementById("materialStatus").value,
+  notes: document.getElementById("materialNotes").value,
+  planItemId: document.getElementById("materialPlanItem")?.value || null
+});
 
   saveData(data);
   closeMaterialForm();
@@ -1152,29 +1188,40 @@ function renderPlans() {
     summary.innerHTML = `<b>${list.length}</b> pins · <span>${completed} completed</span>`;
   }
 
-  // Side checklist
+    // Side checklist
   const pinList = document.getElementById("pinList");
   if (pinList) {
     pinList.innerHTML = list.length === 0
       ? `<p style="color:var(--muted); font-size:12px;">No pins yet. Click on the plan to place a pin.</p>`
-      : list.map((p, index) => `
-        <article class="pin-item" data-id="${p.id}" 
-          style="border-left: 3px solid ${p.status === "Done" ? "var(--green)" : "var(--orange)"}; cursor:pointer;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="margin:0;">${index + 1}. ${p.title}</h3>
-            <span class="chip ${p.status === "Done" ? "confirmed" : "pending"}" style="font-size:9px;">${p.status}</span>
-          </div>
-          <p style="margin:4px 0 0; font-size:11px;">${p.category}</p>
-          ${p.notes ? `<small style="display:block; margin-top:3px;">${p.notes}</small>` : ""}
-          <div style="margin-top:8px; display:flex; gap:6px;">
-            <button class="toggle-pin" data-id="${p.id}" style="font-size:10px;">
-              ${p.status === "Done" ? "Mark Open" : "Mark Done"}
-            </button>
-            <button class="edit-pin" data-id="${p.id}" style="font-size:10px;">Edit</button>
-            <button class="delete-pin" data-id="${p.id}" style="font-size:10px; color:#c25b35;">Delete</button>
-          </div>
-        </article>
-      `).join("");
+      : list.map((p, index) => {
+          const linkedTasks = (data.tasks || []).filter(t => t.planItemId === p.id);
+          const linkedMaterials = (data.materials || []).filter(m => m.planItemId === p.id);
+
+          return `
+            <article class="pin-item" data-id="${p.id}"
+              style="border-left: 3px solid ${p.status === "Done" ? "var(--green)" : "var(--orange)"}; cursor:pointer;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">${index + 1}. ${p.title}</h3>
+                <span class="chip ${p.status === "Done" ? "confirmed" : "pending"}" style="font-size:9px;">${p.status}</span>
+              </div>
+              <p style="margin:4px 0 0; font-size:11px;">${p.category}</p>
+              ${p.notes ? `<small style="display:block; margin-top:3px;">${p.notes}</small>` : ""}
+              ${linkedTasks.length
+                ? `<small style="display:block; margin-top:4px; color:#4e7599;">Tasks: ${linkedTasks.map(t => t.title).join(", ")}</small>`
+                : ""}
+              ${linkedMaterials.length
+  ? `<small style="display:block; margin-top:2px; color:#2e775b;">Materials: ${linkedMaterials.map(m => m.name).join(", ")}</small>`
+  : ""}
+              <div style="margin-top:8px; display:flex; gap:6px;">
+                <button class="toggle-pin" data-id="${p.id}" style="font-size:10px;">
+                  ${p.status === "Done" ? "Mark Open" : "Mark Done"}
+                </button>
+                <button class="edit-pin" data-id="${p.id}" style="font-size:10px;">Edit</button>
+                <button class="delete-pin" data-id="${p.id}" style="font-size:10px; color:#c25b35;">Delete</button>
+              </div>
+            </article>
+          `;
+        }).join("");
   }
 
   // Pins on the plan
@@ -1547,6 +1594,13 @@ function renderHandover() {
   const proofCount = (data.proofs || []).filter(p => p.projectId === projectId).length;
   const pinCount = (data.pins || []).filter(p => p.projectId === projectId).length;
   const pinDone = (data.pins || []).filter(p => p.projectId === projectId && p.status === "Done").length;
+  const projectMaterials = (data.materials || []).filter(m => m.projectId === projectId);
+  const matTotal = projectMaterials.length;
+  const matInstalled = projectMaterials.filter(m => m.status === "Installed").length;
+
+  const projectTasks = (data.tasks || []).filter(t => t.projectId === projectId);
+  const taskTotal = projectTasks.length;
+  const taskApproved = projectTasks.filter(t => t.status === "approved").length;
 
   page.innerHTML = `
     <div class="heading">
@@ -1556,26 +1610,35 @@ function renderHandover() {
       </div>
     </div>
 
-    <div class="summary" style="margin-bottom:18px;">
-      <b>${doneCount} / ${total}</b> items complete
-      <span>${progress}% ready for handover</span>
+        <div class="summary" style="margin-bottom:18px;">
+      <b>${doneCount} / ${total}</b> checklist items
+      <span>${progress}% handover ready</span>
     </div>
 
     <div class="bar" style="margin-bottom:24px; height:8px;">
       <i style="width:${progress}%; background:var(--green);"></i>
     </div>
 
-    <!-- Quick links -->
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px;">
+      <article style="padding:14px; border:1px solid var(--line); border-radius:12px; background:white;">
+        <small style="color:var(--muted);">Plans & Pins</small>
+        <strong style="display:block; font-size:20px; margin:4px 0;">${pinDone}/${pinCount}</strong>
+        <p style="margin:0; font-size:11px; color:var(--muted);">pins completed</p>
+      </article>
       <article style="padding:14px; border:1px solid var(--line); border-radius:12px; background:white;">
         <small style="color:var(--muted);">Work Proofs</small>
         <strong style="display:block; font-size:20px; margin:4px 0;">${proofCount}</strong>
         <p style="margin:0; font-size:11px; color:var(--muted);">photos recorded</p>
       </article>
       <article style="padding:14px; border:1px solid var(--line); border-radius:12px; background:white;">
-        <small style="color:var(--muted);">Plans & Pins</small>
-        <strong style="display:block; font-size:20px; margin:4px 0;">${pinDone}/${pinCount}</strong>
-        <p style="margin:0; font-size:11px; color:var(--muted);">pins completed</p>
+        <small style="color:var(--muted);">Materials</small>
+        <strong style="display:block; font-size:20px; margin:4px 0;">${matInstalled}/${matTotal}</strong>
+        <p style="margin:0; font-size:11px; color:var(--muted);">installed</p>
+      </article>
+      <article style="padding:14px; border:1px solid var(--line); border-radius:12px; background:white;">
+        <small style="color:var(--muted);">Tasks</small>
+        <strong style="display:block; font-size:20px; margin:4px 0;">${taskApproved}/${taskTotal}</strong>
+        <p style="margin:0; font-size:11px; color:var(--muted);">approved</p>
       </article>
     </div>
 
@@ -1804,7 +1867,13 @@ function generateHandoverPDF() {
       <div class="meta">
         <strong>${project.name}</strong><br>
         ${project.phase}<br>
-        Generated: ${new Date().toLocaleDateString("en-GB")}
+        Generated: ${new Date().toLocaleString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+           minute: "2-digit"
+})}
       </div>
 
       <h2>Summary</h2>
